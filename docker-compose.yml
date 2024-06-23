@@ -1,0 +1,63 @@
+version: "3"
+services:
+  postgres:
+    image: postgres:15
+    container_name: server-postgres
+    restart: unless-stopped
+    ports:
+      - ${POSTGRES_PORT}:5432
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - postgres:/var/lib/postgresql/data
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin4_container
+    restart: always
+    ports:
+      - "8888:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD}
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+  redis:
+    image: redis/redis-stack
+    container_name: server-redis
+    restart: unless-stopped
+    ports:
+      - ${REDIS_PORT}:6379
+      - ${REDISINSIGHT_PORT}:8001
+    environment:
+      - REDIS_ARGS=--requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redis:/data
+      - ./redis.conf:/usr/local/etc/redis
+  server:
+    image: server-dev
+    build:
+      context: .
+      target: server-dev
+      args:
+        - PORT:${PORT}
+    container_name: server-dev
+    restart: unless-stopped
+    ports:
+      - ${PORT}:${PORT}
+    depends_on:
+      - postgres
+      - redis
+    volumes:
+      - .:/server/
+volumes:
+  pgadmin-data:
+  postgres:
+    name: server-postgres
+  pgadmin:
+    name: pgadmin-data
+  redis:
+    name: server-redis
+networks:
+  default:
+    name: server

@@ -1,0 +1,17 @@
+# dependencies
+node_modules/
+
+# dist folder
+dist/
+
+# vscode config
+.vscode/
+
+# server logs
+*.log
+
+# backup files
+*.bkp.*
+
+# config files
+.env

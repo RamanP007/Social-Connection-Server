@@ -1,0 +1,68 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserType {
+  User  @map("user")
+  Admin @map("admin")
+}
+
+enum UserStatus {
+  Active   @map("active")
+  Inactive @map("inactive")
+  Blocked  @map("blocked")
+  Suspend  @map("suspend")
+}
+
+model User {
+  id               String     @id @default(uuid()) @db.Uuid
+  email            String     @unique
+  fullname         String?
+  mobile           String?
+  profileImage     String?    @map("profile_image")
+  type             UserType   @default(User)
+  status           UserStatus @default(Active)
+  createdAt        DateTime   @default(now()) @map("created_at")
+  updatedAt        DateTime   @updatedAt @map("updated_at")
+  UserMeta         UserMeta[]
+  sentMessages     Message[]  @relation("sent_message")
+  receivedMessages Message[]  @relation("received_message")
+
+  @@map("user")
+}
+
+model UserMeta {
+  passwordHash    String?  @map("password_hash")
+  passwordMeta    String?  @map("password_meta")
+  isEmailVerified Boolean  @default(false)
+  googleId        String?  @map("google_id")
+  facebookId      String?  @map("facebook_id")
+  user            User     @relation(fields: [userId], references: [id])
+  userId          String   @unique @map("user_id") @db.Uuid
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@map("user_meta")
+}
+
+model Message {
+  id         String   @unique @db.Uuid
+  content    String
+  senderId   String   @map("sender_id") @db.Uuid
+  sender     User     @relation("sent_message", fields: [senderId], references: [id])
+  receiverId String   @map("receiver_id") @db.Uuid
+  receiver   User     @relation("received_message", fields: [receiverId], references: [id])
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@map("message")
+}

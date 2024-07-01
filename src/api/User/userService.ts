@@ -4,6 +4,7 @@ import { PrismaClient } from "@prisma/client";
 import { client } from "../../redis.config";
 import _ from "lodash";
 import SocketEmitter from "../../websocket/emitter/socketEmitter";
+import { allLiveUsers, inSearchingStage } from "../../common/utilityVars";
 
 const prisma: PrismaClient = new PrismaClient();
 const utilsService: UtilsService = new UtilsService();
@@ -157,6 +158,7 @@ export class UserService {
     ) {
       throw new Error("Incorrect Password");
     }
+    allLiveUsers.push(user.id);
     return user;
   }
 
@@ -171,5 +173,68 @@ export class UserService {
       return await this.endSession(id);
     }
     return;
+  }
+
+  getKeysWithoutBlacklist = async (): Promise<string[]> => {
+    const pattern = "*";
+    const blacklistPattern = "blacklist";
+    let cursor = "0";
+    const keys: string[] = [];
+
+    do {
+      const reply: [string, string[]] = await new Promise((resolve, reject) => {
+        client.scan(cursor, "MATCH", pattern, "COUNT", 100, (err, res) => {
+          if (err) {
+            return reject(err);
+          }
+          resolve(res as [string, string[]]);
+        });
+      });
+
+      cursor = reply[0];
+      const foundKeys = reply[1].filter(
+        (key) => !key.includes(blacklistPattern)
+      );
+      keys.push(...foundKeys);
+    } while (cursor !== "0");
+
+    return keys;
+  };
+
+  async acceptTermsAndConditions(id: string) {
+    //TODO: add record of accepting
+    const indexOfUser = _.indexOf(allLiveUsers, id);
+    if (indexOfUser !== -1) {
+      allLiveUsers.splice(indexOfUser, 1);
+    }
+    if (!inSearchingStage.includes(id)) {
+      inSearchingStage.push(id);
+    }
+    // const getAllLiveUsers = await this.getKeysWithoutBlacklist();
+    // console.log("getAllLiveUsers", getAllLiveUsers);
+
+    //TODO: Matching two people and join room
+
+    console.log("inSearchingStageinSearchingStage", inSearchingStage);
+
+    let roomPartnerId = null;
+    if (inSearchingStage.length > 1) {
+      while (roomPartnerId === id || roomPartnerId === null) {
+        const shuffledSearchingStage = _.shuffle(inSearchingStage);
+
+        if (shuffledSearchingStage.length) {
+          roomPartnerId =
+            shuffledSearchingStage[shuffledSearchingStage.length - 1];
+        }
+      }
+
+      if (roomPartnerId) {
+        SocketEmitter.publishRoomIdToUsers(id, roomPartnerId);
+      }
+      return;
+    } else {
+      // SocketEmitter.publishRoomIdToUsers(id, id);
+      return;
+    }
   }
 }

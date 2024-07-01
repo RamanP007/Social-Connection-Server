@@ -9,6 +9,7 @@ import { globalErrorHandler } from "./middlewares/Error";
 import cookieParser from "cookie-parser";
 import { createServer } from "http";
 import socketServer from "./websocket";
+import "./websocket/SocialConnection/index";
 
 const app: Application = express();
 

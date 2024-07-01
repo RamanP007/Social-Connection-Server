@@ -5,6 +5,7 @@ import { client } from "../../redis.config";
 import dayjs from "dayjs";
 import _ from "lodash";
 import { UserService } from "./userService";
+import { allLiveUsers } from "../../common/utilityVars";
 
 type BlacklistTokenPayload = {
   token: string;
@@ -72,6 +73,10 @@ export default class UserController {
       const args = plainToClass(JwtAuthPayload, { ...req.body });
       await this.blacklistToken(args.id, args.token);
       await this.removeActiveToken(args.id);
+      const indexOfUser = _.indexOf(allLiveUsers, args.id);
+      if (indexOfUser !== -1) {
+        allLiveUsers.splice(indexOfUser, 1);
+      }
       res.clearCookie(`__${args.type.toLowerCase()}AccessToken`);
       res.clearCookie("isUserLoggedIn");
       res.send({ success: true });
@@ -106,6 +111,20 @@ export default class UserController {
     try {
       const args = plainToClass(JwtAuthPayload, { ...req.query });
       await usersService.endUserSession(args.id);
+      res.send({ success: true });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  acceptTermsAndConditions = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      const args = plainToClass(JwtAuthPayload, { ...req.body });
+      await usersService.acceptTermsAndConditions(args.id);
       res.send({ success: true });
     } catch (error) {
       next(error);

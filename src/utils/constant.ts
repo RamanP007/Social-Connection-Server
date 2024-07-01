@@ -5,3 +5,8 @@ export const SOCKET_ROOMS = {
 export const SOCKET_NAMESPACES = {
   USER: "/user",
 };
+
+export const SOCKET_EMITTER = {
+  LOGOUT: "LOGOUT",
+  PARTNER_ROOM: "PARTNER_ROOM",
+};

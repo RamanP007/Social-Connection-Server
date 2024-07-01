@@ -9,5 +9,10 @@ const User = new UserController();
 router.post("/logout", AuthenticateSession, User.logout);
 router.get("/me", AuthenticateSession, User.profile);
 router.post("/end-user-session", User.endUserSession);
+router.post(
+  "/accept-terms-and-conditions",
+  AuthenticateSession,
+  User.acceptTermsAndConditions
+);
 
 export default router;
